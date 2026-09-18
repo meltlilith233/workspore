@@ -12,6 +12,6 @@
   },
   "scripts": {
     "test": "node --test \"test/*.test.js\"",
-    "check": "node --check bin/workspore.js && node --check src/collect.js && node --check src/sanitize.js && node --check src/save.js && node --check src/create.js && node --check src/git.js && node --check src/glob.js && node --check src/ui.js"
+    "check": "node --check bin/workspore.js && node --check src/collect.js && node --check src/sanitize.js && node --check src/save.js && node --check src/create.js && node --check src/git.js && node --check src/glob.js && node --check src/ui.js && node --check src/version.js"
   }
 }

@@ -1,16 +1,17 @@
 // create：从模板落出新工作区，落地即巅峰；顺手留一行出身（.workspore-origin）。
 // 不复制 .git——实例不继承模板历史；实例要不要 git，是用户自己的事。
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, statSync } from 'node:fs'
+import {
+  existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync, statSync, cpSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { cpSync } from 'node:fs'
-import { git, gitOk } from './git.js'
+import { gitOk, gitTags } from './git.js'
+import { latestVersion } from './version.js'
 import { fail, say } from './ui.js'
 
 const URL_RE = /^[a-z][a-z0-9+.-]*:\/\//i
 const SCP_RE = /^[^/]+@[^/]+:/
 const TAG_RE = /^[A-Za-z0-9._-]+$/
-const SEMVER_TAG_RE = /^v(\d+)\.(\d+)\.(\d+)$/
 
 export function parseRef(ref) {
   // <路径|URL>[@<tag>]：仅当去掉 @tag 后本地真实存在时，才按 @tag 理解，避免误伤含 @ 的 URL
@@ -23,19 +24,6 @@ export function parseRef(ref) {
     }
   }
   return { ref, tag: null }
-}
-
-function latestTag(tags) {
-  let best = null
-  for (const t of tags) {
-    const m = SEMVER_TAG_RE.exec(t)
-    if (!m) continue
-    const v = [Number(m[1]), Number(m[2]), Number(m[3])]
-    if (!best || v[0] > best[0] || (v[0] === best[0] && (v[1] > best[1] || (v[1] === best[1] && v[2] > best[2])))) {
-      best = v
-    }
-  }
-  return best ? `v${best.join('.')}` : null
 }
 
 function countPlaceholders(dir) {
@@ -80,12 +68,12 @@ export function cmdCreate(refArg, destArg) {
   try {
     gitOk(['clone', '-q', ref, tmp])
 
-    const tags = git(['tag', '--list'], { cwd: tmp }).stdout.split(/\r?\n/).filter(Boolean)
+    const tags = gitTags(tmp)
     let version = wantTag
     if (version) {
       if (!tags.includes(version)) fail(`模板没有这个版本：${version}（现有：${tags.join(', ') || '无'}）`)
     } else {
-      version = latestTag(tags) ?? 'HEAD'
+      version = latestVersion(tags) ?? 'HEAD'
     }
     if (version !== 'HEAD') gitOk(['checkout', '-q', '--detach', version], { cwd: tmp })
 

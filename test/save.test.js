@@ -2,38 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs'
 import path from 'node:path'
-import { runCli, makeTempRoot, gitOut, tags, readIfExists } from './helpers.js'
-
-// 假源工作区：指令文件、能力、故意埋的假密钥、选入清单与中间地带文件
-export function makeWorkspace(root, name = 'ws') {
-  const ws = path.join(root, name)
-  mkdirSync(ws, { recursive: true })
-  writeFileSync(path.join(ws, 'AGENTS.md'), '目录约定：素材放 assets/，产出放 output/。')
-  writeFileSync(path.join(ws, 'CLAUDE.md'), '命名规范：kebab-case。')
-  mkdirSync(path.join(ws, '.claude', 'skills', 'video-qa'), { recursive: true })
-  writeFileSync(path.join(ws, '.claude', 'skills', 'video-qa', 'SKILL.md'), '---\nname: video-qa\n---\n做视频质检。')
-  mkdirSync(path.join(ws, '.claude', 'commands'), { recursive: true })
-  writeFileSync(path.join(ws, '.claude', 'commands', 'review.md'), '审查当前目录。')
-  mkdirSync(path.join(ws, '.agents', 'skills', 'research'), { recursive: true })
-  writeFileSync(path.join(ws, '.agents', 'skills', 'research', 'SKILL.md'), '深度调研技能。')
-  writeFileSync(
-    path.join(ws, '.mcp.json'),
-    JSON.stringify({ mcpServers: { browser: { command: 'npx', env: { BROWSER_KEY: 'bk-secret-123' }, headers: { Authorization: 'Bearer h-secret' } } } }, null, 2),
-  )
-  writeFileSync(
-    path.join(ws, '.claude', 'settings.json'),
-    JSON.stringify({ env: { API_TOKEN: 'sk-live-abc', LOG_LEVEL: 'debug' }, permissions: { allow: ['Bash'] } }, null, 2),
-  )
-  writeFileSync(path.join(ws, '.claude', 'settings.local.json'), '{"env":{"LOCAL_SECRET":"x"}}')
-  writeFileSync(path.join(ws, '.env'), 'SECRET=1')
-  mkdirSync(path.join(ws, 'assets'), { recursive: true })
-  writeFileSync(path.join(ws, 'assets', 'clip.mp4'), 'fakevideo')
-  mkdirSync(path.join(ws, 'prompts'), { recursive: true })
-  writeFileSync(path.join(ws, 'prompts', 'intro.md'), '开场白范本。')
-  writeFileSync(path.join(ws, 'keys.pem'), '-----BEGIN RSA PRIVATE KEY-----')
-  writeFileSync(path.join(ws, '.workspore'), '# 选入清单\nprompts/**\nkeys.pem\nassets/clip.mp4\n')
-  return ws
-}
+import { runCli, makeTempRoot, gitOut, tags, readIfExists, makeWorkspace } from './helpers.js'
 
 describe('save', () => {
   test('把上下文、能力、选入文件固化进新模板仓库，并打首个 tag', (t) => {
@@ -89,13 +58,16 @@ describe('save', () => {
     assert.ok(settings.includes('"allow"'), 'env 之外的字段保留')
   })
 
-  test('被拦截的选入文件在输出中警告（宁可误拦、人工救回）', (t) => {
+  test('清单 ! 强制选入可救回素材误拦，凭证即使强制也不进', (t) => {
     const root = makeTempRoot(t)
     const ws = makeWorkspace(root)
+    writeFileSync(path.join(ws, '.workspore'), '# 选入清单\n!assets/clip.mp4\n!keys.pem\n')
     const r = runCli(['save'], ws)
-    assert.equal(r.status, 0)
-    assert.ok(r.stdout.includes('keys.pem'), `应警告凭证文件: ${r.stdout}`)
-    assert.ok(r.stdout.includes('clip.mp4'), `应警告素材文件: ${r.stdout}`)
+    assert.equal(r.status, 0, r.stderr)
+
+    const tpl = path.join(root, 'ws-template')
+    assert.equal(readIfExists(path.join(tpl, 'assets', 'clip.mp4')), 'fakevideo', '素材误拦经 ! 救回')
+    assert.equal(existsSync(path.join(tpl, 'keys.pem')), false, '凭证形态不可救回（不可漏放）')
   })
 
   test('二次 save 递增 patch 版本，并镜像删除已移除的文件', (t) => {
@@ -122,7 +94,6 @@ describe('save', () => {
     const r = runCli(['save'], ws)
     assert.equal(r.status, 0, r.stderr)
     assert.deepEqual(tags(path.join(root, 'ws-template')), ['v0.1.0'])
-    assert.ok(r.stdout.includes('无变化'))
   })
 
   test('--minor 与 --major 手动标大版本', (t) => {

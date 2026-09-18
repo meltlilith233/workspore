@@ -25,3 +25,8 @@ export function commit(message, cwd) {
   )
   if (r2.status !== 0) throw new Error(`git commit 失败：${(r2.stderr || '').trim()}`)
 }
+
+export function gitTags(cwd) {
+  const r = git(['tag', '--list'], { cwd })
+  return r.status === 0 ? r.stdout.split(/\r?\n/).filter(Boolean) : []
+}

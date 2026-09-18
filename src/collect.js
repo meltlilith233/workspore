@@ -55,12 +55,14 @@ const DENY_ASSET_EXT = new Set([
   'onnx', 'pt', 'ckpt', 'safetensors',
 ])
 
-function denyReason(rel) {
+function denyReason(rel, forced = false) {
   const base = rel.split('/').pop()
   if (/(^|\/)settings\.local\.json$/i.test(rel)) return '本地状态（settings.local）'
+  // 凭证形态是硬拦截：即使作者 ! 强制选入也不进模板（不可漏放）
   if (DENY_BASENAME.some((re) => re.test(base))) return '凭证文件'
   const ext = base.includes('.') ? base.split('.').pop().toLowerCase() : ''
   if (DENY_KEY_EXT.has(ext)) return '凭证文件'
+  if (forced) return null // 显式强制选入只让步给凭证，其余误拦可救回
   if (DENY_ASSET_EXT.has(ext)) return '素材/产出'
   for (const seg of rel.split('/')) {
     if (DENY_DIR_SEGMENTS.has(seg)) return '家底/本地状态'
@@ -87,30 +89,37 @@ function walkFiles(root) {
 
 function readManifest(ws) {
   const p = path.join(ws, '.workspore')
-  if (!existsSync(p) || !statSync(p).isFile()) return { found: false, patterns: [] }
+  if (!existsSync(p) || !statSync(p).isFile()) return { found: false, patterns: [], forcedPatterns: [] }
   const lines = readFileSync(p, 'utf8').split(/\r?\n/)
   const patterns = []
+  const forcedPatterns = []
   for (const raw of lines) {
-    const line = raw.trim()
-    if (!line || line.startsWith('#')) continue
-    patterns.push(line.replaceAll('\\', '/'))
+    let line = raw.trim()
+    if (!line || line === '#' || line.startsWith('#')) continue
+    const forced = line.startsWith('!')
+    if (forced) line = line.slice(1).trim()
+    if (!line) continue
+    line = line.replaceAll('\\', '/')
+    const target = forced ? forcedPatterns : patterns
+    target.push(line)
     // 纯目录名（无通配符）按「目录下全部文件」理解
     if (!hasMagic(line) && existsSync(path.join(ws, line)) && statSync(path.join(ws, line)).isDirectory()) {
-      patterns.push(`${line}/**`)
+      target.push(`${line}/**`)
     }
   }
-  return { found: true, patterns }
+  return { found: true, patterns, forcedPatterns }
 }
 
-// 返回 { kept: Map<rel, bucket>, blocked: [{rel, reason}], manifestFound, manifestPatterns }
+// 返回 { kept: Map<rel, bucket>, blocked: [{rel, reason}], manifestFound }
+// bucket：context 上下文 / capability 能力 / optin 清单选入 / forced 强制救回
 export function collectSelection(ws) {
   const rels = walkFiles(ws)
   const relSet = new Set(rels)
   const kept = new Map()
 
-  const pick = (patterns, bucket) => {
+  const pick = (patterns, bucket, { override = false } = {}) => {
     for (const rel of rels) {
-      if (kept.has(rel)) continue
+      if (kept.has(rel) && !override) continue
       if (patterns.some((p) => globToRegex(p).test(rel))) kept.set(rel, bucket)
     }
   }
@@ -119,21 +128,22 @@ export function collectSelection(ws) {
   pick(CONTEXT_DIR_GLOBS, 'context')
   pick(CAPABILITY_GLOBS, 'capability')
 
-  const { found, patterns } = readManifest(ws)
+  const { found, patterns, forcedPatterns } = readManifest(ws)
   if (found) {
     kept.set('.workspore', 'manifest')
     pick(patterns, 'optin')
+    pick(forcedPatterns, 'forced', { override: true })
   }
 
   const blocked = []
   for (const rel of [...kept.keys()]) {
-    const reason = denyReason(rel)
+    const reason = denyReason(rel, kept.get(rel) === 'forced')
     if (reason) {
       blocked.push({ rel, reason })
       kept.delete(rel)
     }
   }
-  return { kept, blocked, manifestFound: found, manifestPatterns: patterns }
+  return { kept, blocked, manifestFound: found }
 }
 
 export { walkFiles, denyReason }

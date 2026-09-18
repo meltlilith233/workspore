@@ -89,3 +89,11 @@ Feature: workspore-cli
 - 选入清单为工作区根 `.workspore` 文件（glob 每行一个，# 注释，纯目录名按目录/**理解），清单本身随模板走；凭证与素材形态即使选入也拦截并警告（宁可误拦、人工救回）。
 - create 走 git clone（本地路径与 URL 同一机制），默认取最新 semver tag，出身一行写 `.workspore-origin`；实例不继承模板 .git。
 - 测试 25 个全绿（`node --test`），全部经命令行黑盒缝，断言只落文件系统与 git 状态；含中文路径用例（Windows）。
+
+**2026-09-18 code-review 修订（agent）**：双轴评审（Standards/Spec）后修正——
+
+- **人工救回此前是死路**：被拦文件无论清单怎么写都进不了模板，手工拷进模板仓库又会被下次 save 镜像删除。现给 `.workspore` 清单加 `!` 前缀强制选入：可救回素材/产出误拦且不被镜像删除；凭证形态连 `!` 也拦（不可漏放）。
+- 测试缝收紧：删去两处对 stdout 文本的断言（Testing Decisions 要求断言只落文件系统与 git 状态）。
+- 测试计数修正：此前 create.test.js 从 save.test.js import fixture 导致 save 套件双跑，"25 个"实为 15 个用例的重复执行；fixture 移入 helpers 后 15 个全绿。
+- 消重：semver 解析/比较/递增抽到 `src/version.js`（save 与 create 共用），tag 列表读取收进 `src/git.js` gitTags；删除未用的 BUCKET_LABEL 与 manifestPatterns 返回值。
+- 实现期解读备案（Spec 评审提出）：spec 的「常见密钥文件形态」按「凭证文件…一律排除」实现为整文件拦截，占位符替换只适用于声明文件内的 env/headers；`-m`/无变化不打 tag/create 播报占位符数等超出 spec 字面的小项按「合理 UX/健壮性」保留，均记录于此。

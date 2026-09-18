@@ -4,43 +4,14 @@ import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } 
 import path from 'node:path'
 import { collectSelection, walkFiles } from './collect.js'
 import { sanitizeJson } from './sanitize.js'
-import { commit, git, gitOk } from './git.js'
+import { commit, git, gitOk, gitTags } from './git.js'
+import { nextVersion, latestVersion } from './version.js'
 import { fail, say } from './ui.js'
-
-const BUCKET_LABEL = { context: '上下文', capability: '能力', optin: '选入', manifest: '清单' }
 
 function resolveTarget(ws, opts) {
   if (opts.to) return path.resolve(opts.to)
   const parent = path.dirname(ws)
   return path.join(parent, `${path.basename(ws)}-template`)
-}
-
-export function latestVersion(tags) {
-  let best = null
-  for (const t of tags) {
-    const m = /^v(\d+)\.(\d+)\.(\d+)$/.exec(t)
-    if (!m) continue
-    const v = [Number(m[1]), Number(m[2]), Number(m[3])]
-    if (!best || v[0] > best[0] || (v[0] === best[0] && (v[1] > best[1] || (v[1] === best[1] && v[2] > best[2])))) {
-      best = v
-    }
-  }
-  return best ? `v${best.join('.')}` : null
-}
-
-// semver：首个版本 v0.1.0（--major 则 v1.0.0）；默认 patch+1，--minor / --major 手动抬档
-export function nextVersion(tags, opts) {
-  const best = latestVersion(tags)
-  const v = best ? best.slice(1).split('.').map(Number) : null
-  if (!v) return opts.major ? 'v1.0.0' : 'v0.1.0'
-  if (opts.major) return `v${v[0] + 1}.0.0`
-  if (opts.minor) return `v${v[0]}.${v[1] + 1}.0`
-  return `v${v[0]}.${v[1]}.${v[2] + 1}`
-}
-
-function listTags(repo) {
-  const r = git(['tag', '--list'], { cwd: repo })
-  return r.status === 0 ? r.stdout.split(/\r?\n/).filter(Boolean) : []
 }
 
 function syncTemplate(target, files, selectedRels) {
@@ -97,20 +68,20 @@ export function cmdSave(wsArg, opts) {
   const status = git(['status', '--porcelain'], { cwd: target })
   const dirty = status.status === 0 && status.stdout.trim() !== ''
   if (!dirty) {
-    const latest = latestVersion(listTags(target))
+    const latest = latestVersion(gitTags(target))
     say(`无变化，不生成新版本。模板最新版本仍是 ${latest ?? '（无）'}：${target}`)
     return
   }
 
-  const version = nextVersion(listTags(target), opts)
+  const version = nextVersion(gitTags(target), opts)
   const message = opts.message || `workspore save ${version}`
   commit(message, target)
   gitOk(['tag', '-a', version, '-m', message], { cwd: target })
 
-  const tally = { context: 0, capability: 0, optin: 0, manifest: 0 }
+  const tally = { context: 0, capability: 0, optin: 0, forced: 0, manifest: 0 }
   for (const b of kept.values()) tally[b]++
   say(`已固化 ${kept.size} 个文件 → ${target}`)
-  say(`  上下文 ${tally.context} · 能力 ${tally.capability} · 选入 ${tally.optin} · 清单 ${tally.manifest}`)
+  say(`  上下文 ${tally.context} · 能力 ${tally.capability} · 选入 ${tally.optin} · 强制 ${tally.forced} · 清单 ${tally.manifest}`)
   if (replaced > 0) say(`  脱敏：${replaced} 处密钥已换环境变量占位符`)
   if (blocked.length > 0) {
     say('已排除（宁可误拦，可到模板仓库人工救回）：')

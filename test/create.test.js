@@ -2,8 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdirSync, writeFileSync, readFileSync, existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
-import { runCli, makeTempRoot, readIfExists } from './helpers.js'
-import { makeWorkspace } from './save.test.js'
+import { runCli, makeTempRoot, readIfExists, makeWorkspace } from './helpers.js'
 
 describe('create', () => {
   test('从模板落出新工作区：文件齐、无 .git、出身一行', (t) => {
