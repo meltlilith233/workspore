@@ -1,6 +1,6 @@
 # Workspore CLI — Spec
 
-Status: ready-for-agent
+Status: ready-for-human
 Feature: workspore-cli
 日期：2026-09-17
 来源：产品定义（定稿）、CONTEXT.md、ADR-0001/0002/0003
@@ -78,3 +78,14 @@ Feature: workspore-cli
 - 词汇表见 CONTEXT.md（模板、实例、上下文、能力、家底、出身）；产品定义见 Workspore产品定义.md；决策记录见 docs/adr/0001~0003。
 - 工具适配范围建议拆工单时逐个确认，优先覆盖模板作者实际在用的工具。
 - save 接入 LLM 的完整讨论存档见产品定义「记录待议」节。
+
+## Comments
+
+**2026-09-18 实现完成（agent）**：Node ≥ 20、ESM、零运行时依赖；`bin/workspore.js` + `src/`（collect 选入规则 / sanitize 脱敏规则引擎 / save / create / git / glob）。实现期决定（spec 留白处）：
+
+- 首个版本 `v0.1.0`，`--minor` / `--major` 手动抬档，无变化不打新 tag。
+- 模板默认落工作区旁 `<名>-template`，`--to` 可指定；模板工作区每次镜像选入结果（清单移除即模板删除，人工救回需回写源工作区）。
+- 指令文件覆盖 v1 名单：AGENTS/CLAUDE/GEMINI/.cursorrules/.windsurfrules/.github copilot-instructions/.cursor rules；能力覆盖 .claude/.agents/.zcode 的 skills 与 commands、.mcp.json/.cursor/mcp.json、.claude/.zcode 共享 settings（env 块脱敏）。
+- 选入清单为工作区根 `.workspore` 文件（glob 每行一个，# 注释，纯目录名按目录/**理解），清单本身随模板走；凭证与素材形态即使选入也拦截并警告（宁可误拦、人工救回）。
+- create 走 git clone（本地路径与 URL 同一机制），默认取最新 semver tag，出身一行写 `.workspore-origin`；实例不继承模板 .git。
+- 测试 25 个全绿（`node --test`），全部经命令行黑盒缝，断言只落文件系统与 git 状态；含中文路径用例（Windows）。

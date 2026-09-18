@@ -1,0 +1,17 @@
+{
+  "name": "workspore",
+  "version": "0.1.0",
+  "description": "把调校好的 AI 工作区固化为带版本的模板，从模板落出新工作区。CLI 只有 save 与 create 两个动作。",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "workspore": "bin/workspore.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "check": "node --check bin/workspore.js && node --check src/collect.js && node --check src/sanitize.js && node --check src/save.js && node --check src/create.js && node --check src/git.js && node --check src/glob.js && node --check src/ui.js"
+  }
+}
