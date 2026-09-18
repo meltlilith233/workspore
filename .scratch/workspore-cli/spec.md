@@ -97,3 +97,5 @@ Feature: workspore-cli
 - 测试计数修正：此前 create.test.js 从 save.test.js import fixture 导致 save 套件双跑，"25 个"实为 15 个用例的重复执行；fixture 移入 helpers 后 15 个全绿。
 - 消重：semver 解析/比较/递增抽到 `src/version.js`（save 与 create 共用），tag 列表读取收进 `src/git.js` gitTags；删除未用的 BUCKET_LABEL 与 manifestPatterns 返回值。
 - 实现期解读备案（Spec 评审提出）：spec 的「常见密钥文件形态」按「凭证文件…一律排除」实现为整文件拦截，占位符替换只适用于声明文件内的 env/headers；`-m`/无变化不打 tag/create 播报占位符数等超出 spec 字面的小项按「合理 UX/健壮性」保留，均记录于此。
+
+**2026-09-18 UX 重写（agent，用户实跑反馈）**：`--help` 分区重排（用法/选项/收什么/create 说明/示例，加 help 子命令与 save/create 的 -h）；运行输出信息分层——隐藏零值桶、结果一行带头、细节缩进、首次 save 给下一步提示、报错一律附修法。

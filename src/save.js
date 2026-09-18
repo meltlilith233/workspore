@@ -28,14 +28,16 @@ function syncTemplate(target, files, selectedRels) {
 
 export function cmdSave(wsArg, opts) {
   const ws = path.resolve(wsArg || '.')
-  if (!existsSync(ws) || !statSync(ws).isDirectory()) fail(`工作区不存在：${ws}`)
+  if (!existsSync(ws) || !statSync(ws).isDirectory()) {
+    fail(`工作区不存在：${ws}\n请确认路径，或先 cd 进工作区再运行 save。`)
+  }
 
   const { kept, blocked, manifestFound } = collectSelection(ws)
   if (!manifestFound) {
-    say('提示：未发现 .workspore 选入清单，中间地带文件（脚本、范本、prompt 库）不会进模板。')
+    say('提示：未发现 .workspore 清单——脚本、范本等中间地带文件没有收进模板（workspore help 查看说明）')
   }
   if (kept.size === 0) {
-    fail('没有发现可固化的内容：上下文（指令文件）与能力（skills/命令/MCP 声明）均为空。')
+    fail('没有发现可固化的内容：未找到指令文件（AGENTS.md、CLAUDE.md 等）或能力（skills、命令、MCP 声明）。\n运行 workspore help 查看模板收集范围。')
   }
 
   // 读内容并脱敏：JSON 走规则引擎，其余字节原样
@@ -55,7 +57,7 @@ export function cmdSave(wsArg, opts) {
   const target = resolveTarget(ws, opts)
   if (existsSync(target)) {
     if (!existsSync(path.join(target, '.git'))) {
-      fail(`目标目录已存在且不是 git 仓库：${target}`)
+      fail(`目标目录已存在且不是 git 仓库：${target}\n换用 --to 指定其他目录。`)
     }
   } else {
     mkdirSync(target, { recursive: true })
@@ -69,7 +71,7 @@ export function cmdSave(wsArg, opts) {
   const dirty = status.status === 0 && status.stdout.trim() !== ''
   if (!dirty) {
     const latest = latestVersion(gitTags(target))
-    say(`无变化，不生成新版本。模板最新版本仍是 ${latest ?? '（无）'}：${target}`)
+    say(`无变化：与 ${latest ?? '上次保存'} 相同，未生成新版本 → ${target}`)
     return
   }
 
@@ -80,12 +82,22 @@ export function cmdSave(wsArg, opts) {
 
   const tally = { context: 0, capability: 0, optin: 0, forced: 0, manifest: 0 }
   for (const b of kept.values()) tally[b]++
-  say(`已固化 ${kept.size} 个文件 → ${target}`)
-  say(`  上下文 ${tally.context} · 能力 ${tally.capability} · 选入 ${tally.optin} · 强制 ${tally.forced} · 清单 ${tally.manifest}`)
-  if (replaced > 0) say(`  脱敏：${replaced} 处密钥已换环境变量占位符`)
+  const parts = []
+  if (tally.context) parts.push(`上下文 ${tally.context}`)
+  if (tally.capability) parts.push(`能力 ${tally.capability}`)
+  if (tally.optin) parts.push(`选入 ${tally.optin}`)
+  if (tally.forced) parts.push(`救回 ${tally.forced}`)
+  say(`模板已保存 → ${target}（${version}）`)
+  say(`  收集 ${kept.size} 个文件：${parts.join(' · ')}`)
+  if (replaced > 0) say(`  脱敏 ${replaced} 处密钥 → \${环境变量} 占位符`)
   if (blocked.length > 0) {
-    say('已排除（宁可误拦，可到模板仓库人工救回）：')
-    for (const { rel, reason } of blocked) say(`  ${rel}（${reason}）`)
+    say(`  拦截 ${blocked.length} 个文件（宁可误拦）：`)
+    for (const { rel, reason } of blocked) say(`    ${rel}（${reason}）`)
+    if (blocked.some((b) => b.reason !== '凭证文件')) {
+      say('  素材/家底类误拦可在 .workspore 清单用 ! 前缀强制救回；凭证文件不救')
+    }
   }
-  say(`版本 ${version}`)
+  if (version === 'v0.1.0') {
+    say(`  下一步：开新任务 → workspore create ${target} <目标目录>`)
+  }
 }

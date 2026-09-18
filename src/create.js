@@ -45,13 +45,14 @@ function countPlaceholders(dir) {
 }
 
 export function cmdCreate(refArg, destArg) {
-  if (!refArg) fail('用法：workspore create <模板路径|URL>[@<tag>] <目标目录>')
-  if (!destArg) fail('缺少目标目录：workspore create <模板路径|URL>[@<tag>] <目标目录>')
+  if (!refArg || !destArg) {
+    fail('用法：workspore create <模板路径|URL>[@<tag>] <目标目录>\n运行 workspore help 查看详情。')
+  }
 
   const dest = path.resolve(destArg)
   if (existsSync(dest)) {
     if (!statSync(dest).isDirectory()) fail(`目标已存在且不是目录：${dest}`)
-    if (readdirSync(dest).length > 0) fail(`目标目录非空：${dest}`)
+    if (readdirSync(dest).length > 0) fail(`目标目录非空：${dest}\ncreate 只落进空目录，请换一个目标或先清空。`)
   }
 
   const { ref, tag: wantTag } = parseRef(refArg)
@@ -59,7 +60,7 @@ export function cmdCreate(refArg, destArg) {
   if (isLocal) {
     const abs = path.resolve(ref)
     if (!existsSync(abs) || !existsSync(path.join(abs, '.git'))) {
-      fail(`模板不存在或不是 git 仓库：${abs}`)
+      fail(`模板不存在或不是 git 仓库：${abs}\n本地路径或 git URL 均可，模板需先经 workspore save 产出。`)
     }
   }
   const originRef = isLocal ? path.resolve(ref) : ref
@@ -90,9 +91,10 @@ export function cmdCreate(refArg, destArg) {
     writeFileSync(path.join(dest, '.workspore-origin'), `${originRef}@${version} (${today})\n`)
 
     const placeholders = countPlaceholders(dest)
-    say(`已落地 ${dest}（出身：${originRef}@${version} → .workspore-origin）`)
+    say(`新工作区已就绪 → ${dest}`)
+    say(`  来源 ${originRef}@${version}（出身已写入 .workspore-origin）`)
     if (placeholders > 0) {
-      say(`密钥占位符 ${placeholders} 处，配置好对应环境变量即可开工。`)
+      say(`  待配置：${placeholders} 处密钥占位符（形如 \${变量名}），填好对应环境变量即可开工`)
     }
   } finally {
     rmSync(tmp, { recursive: true, force: true })
