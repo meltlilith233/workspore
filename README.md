@@ -1,12 +1,11 @@
 # Workspore
 
-把调校好的 AI 工作区固化为带版本的模板，从模板落出新工作区。两个命令、零依赖、零后端。
+把调校好的 AI 工作区固化为带版本的模板，从模板一键生成同样调校好的新工作区。两个命令、零依赖、零后端。
 
-- **落地即巅峰**——`create` 出的新工作区带着目录约定、命名规范、skills、MCP 声明，agent 读着 AGENTS.md 直接按规范开工，你只需配一次密钥。
-- **模板就是 git 仓库**——版本即 tag，`save` 一次自动打 tag；diff、log、分支、PR 全部原生可用，设为公开即完成分享。
-- **密钥自动脱敏**——MCP 声明的 env/headers 与 settings 的 env 块一律换成 `${键名}` 占位符，凭证文件永不进模板，公开仓库放心设。
-- **不搬目录**——只收上下文与能力，目录结构由 agent 读上下文自己长出来；这是与 cookiecutter / copier 的分界线。
-- **初始化后退场**——不跟踪、不更新、不引导；工具管字节，agent 管语义。
+- **一键固化**——`save` 把工作区的指令文件（AGENTS.md、CLAUDE.md 等）、skills、命令、MCP 配置打包成 git 模板仓库，一次一个版本 tag。
+- **一键复用**——`create` 从模板生成全新工作区，约定、skills、MCP 全部就位，配一次密钥即可开工。
+- **密钥不出门**——敏感值自动替换成 `${变量名}` 占位符，凭证文件、素材、产出一律排除；模板仓库可以放心公开。
+- **纯 git、无常驻**——版本就是 tag，diff、log、PR 照常用；保存和生成之外工具不做任何事（不跟踪、不更新、不引导）。
 
 ## Install
 
@@ -19,18 +18,28 @@ npm link          # 或直接 node bin/workspore.js
 
 ## Quick start
 
+在调校好的工作区里，把当前配置存成模板：
+
 ```bash
-$ cd D:\video-workspace            # 调校好的工作区
+$ cd D:\video-workspace
 $ workspore save
 Saved template to D:\video-workspace-template (v0.1.0)
   collected 12 file(s) (2 context, 10 capability)
   replaced 3 secret value(s) with ${ENV_VAR} placeholders
+```
 
+旁边的 `D:\video-workspace-template` 就是一个普通 git 仓库（版本 v0.1.0），里面是指令文件、skills、MCP 声明——密钥已换成占位符。
+
+开新任务时，从模板生成工作区：
+
+```bash
 $ workspore create ..\video-workspace-template D:\new-film
 Created workspace at D:\new-film
-  source: ...@v0.1.0 (origin written to .workspore-origin)
+  source: D:\video-workspace-template@v0.1.0 (origin written to .workspore-origin)
 warning: 3 placeholder(s) need matching env vars
 ```
+
+新目录里，目录约定、命名规范、skills、MCP 声明全部就位，agent 读 AGENTS.md 就能按规范开工。给占位符配好环境变量，开工。
 
 ## Usage
 
