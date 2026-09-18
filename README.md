@@ -12,6 +12,8 @@
 node bin/workspore.js --help
 ```
 
+CLI 界面文本为英文，遵循常规 CLI 约定（GNU 风格 help 与 `error:`/`warning:`/`hint:` 前缀；退出码 0 成功、1 运行失败、2 用法错误）。
+
 ## save——固化
 
 在工作区内运行：

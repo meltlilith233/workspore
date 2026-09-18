@@ -57,15 +57,15 @@ const DENY_ASSET_EXT = new Set([
 
 function denyReason(rel, forced = false) {
   const base = rel.split('/').pop()
-  if (/(^|\/)settings\.local\.json$/i.test(rel)) return '本地状态（settings.local）'
+  if (/(^|\/)settings\.local\.json$/i.test(rel)) return 'local state'
   // 凭证形态是硬拦截：即使作者 ! 强制选入也不进模板（不可漏放）
-  if (DENY_BASENAME.some((re) => re.test(base))) return '凭证文件'
+  if (DENY_BASENAME.some((re) => re.test(base))) return 'credential'
   const ext = base.includes('.') ? base.split('.').pop().toLowerCase() : ''
-  if (DENY_KEY_EXT.has(ext)) return '凭证文件'
+  if (DENY_KEY_EXT.has(ext)) return 'credential'
   if (forced) return null // 显式强制选入只让步给凭证，其余误拦可救回
-  if (DENY_ASSET_EXT.has(ext)) return '素材/产出'
+  if (DENY_ASSET_EXT.has(ext)) return 'asset'
   for (const seg of rel.split('/')) {
-    if (DENY_DIR_SEGMENTS.has(seg)) return '家底/本地状态'
+    if (DENY_DIR_SEGMENTS.has(seg)) return 'internal'
   }
   return null
 }

@@ -99,3 +99,5 @@ Feature: workspore-cli
 - 实现期解读备案（Spec 评审提出）：spec 的「常见密钥文件形态」按「凭证文件…一律排除」实现为整文件拦截，占位符替换只适用于声明文件内的 env/headers；`-m`/无变化不打 tag/create 播报占位符数等超出 spec 字面的小项按「合理 UX/健壮性」保留，均记录于此。
 
 **2026-09-18 UX 重写（agent，用户实跑反馈）**：`--help` 分区重排（用法/选项/收什么/create 说明/示例，加 help 子命令与 save/create 的 -h）；运行输出信息分层——隐藏零值桶、结果一行带头、细节缩进、首次 save 给下一步提示、报错一律附修法。
+
+**2026-09-18 CLI 文本定稿（用户决策）**：界面文本定为英文、GNU 惯例——Usage/Options/Examples 分区、`-t`/`-m`/`-V` 短旗标、`error:`/`warning:`/`hint:` 前缀、用法错误退出码 2、运行失败 1；产品黑话（固化/落地/出身/中间地带）不进 CLI 输出，改用 context/capability/opt-in/origin/manifest。中文语汇保留在文档与代码注释层。
