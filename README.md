@@ -60,11 +60,12 @@ warning: 3 placeholder(s) need matching env vars
 ### workspore create
 
 ```bash
-workspore create ../my-template D:\new-task    # 默认最新版本
-workspore create ../my-template@v0.1.0 D:\old  # 指定版本
+workspore create ../my-template D:\new-task                      # 本地模板，默认最新版本
+workspore create ../my-template@v0.1.0 D:\old                    # 指定版本
+workspore create https://github.com/you/my-template D:\new-task  # 公开模板仓库，clone 即用
 ```
 
-写入一行出身（`.workspore-origin`：来源模板与版本），不继承模板 git 历史；之后工具退场。
+任何 git 地址都能用（本地路径或 URL），实例不继承模板 git 历史，并写入一行出身（`.workspore-origin`：来源模板与版本）；之后工具退场。分享模板：推到 GitHub 设为公开，对方拿到仓库地址就能 create 出同款工作区。
 
 ## Why not just git clone / cookiecutter?
 

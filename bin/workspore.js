@@ -42,7 +42,8 @@ Examples:
   workspore save
   workspore save --major -m "rework directory conventions"
   workspore create ../my-template D:\\new
-  workspore create ../my-template@v0.1.0 D:\\new`
+  workspore create ../my-template@v0.1.0 D:\\new
+  workspore create https://github.com/you/my-template D:\\new`
 
 function main() {
   const argv = process.argv.slice(2)
