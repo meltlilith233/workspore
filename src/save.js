@@ -34,10 +34,10 @@ export function cmdSave(wsArg, opts) {
 
   const { kept, blocked, manifestFound } = collectSelection(ws)
   if (!manifestFound) {
-    hint("no .workspore manifest found; extra files (scripts, snippets, prompts) are not collected - see 'workspore help'")
+    hint('no .workspore manifest found; extra files will not be collected')
   }
   if (kept.size === 0) {
-    fail("nothing to save: no instruction files (AGENTS.md, CLAUDE.md, ...) and no capability files (skills, commands, MCP declarations) found.\nsee 'workspore help' for what gets collected.")
+    fail("nothing to save: no instruction files or capability files found\nsee 'workspore help' for what gets collected")
   }
 
   // 读内容并脱敏：JSON 走规则引擎，其余字节原样
@@ -94,10 +94,11 @@ export function cmdSave(wsArg, opts) {
     say(`  skipped ${blocked.length} file(s):`)
     for (const { rel, reason } of blocked) say(`    ${rel} (${reason})`)
     if (blocked.some((b) => b.reason !== 'credential')) {
-      hint("false positives can be force-included with '!' lines in .workspore; credential-shaped files can never be included")
+      hint("force-include false positives with '!' lines in .workspore")
     }
   }
   if (version === 'v0.1.0') {
-    say(`  next: run 'workspore create ${target} <dir>' to start a workspace from this template`)
+    const rel = path.relative(ws, target)
+    say(`  next: workspore create ${rel} <dir>`)
   }
 }
